@@ -1,0 +1,57 @@
+# To better understand this file read this:
+# https://docs.ionos.space/docs/github-actions-customization/
+
+name: "Deploy Now: Execute Build"
+
+on:
+  workflow_call:
+    inputs:
+      site-url:
+        required: true
+        type: string
+      branch-id:
+        required: true
+        type: string
+
+env:
+  DEPLOYMENT_FOLDER: public
+
+jobs:
+# Please do not rename this job
+  build-project:
+    name: build blog-gatsby-strapi-frontend
+    runs-on: ubuntu-latest
+    steps:
+      - name: checkout
+        uses: actions/checkout@v3
+        with:
+          submodules: 'recursive'
+
+      - name: Setup Node
+        uses: actions/setup-node@v3
+        with:
+          node-version: v18.x
+
+      - name: Build Node assets
+        env:
+          CI: true
+          SITE_URL: ${{ inputs.site-url }}
+          STRAPI_API_URL: http://127.0.0.1:1338
+          STRAPI_TOKEN: 3b9b4e5cd839847ddc2eb2c078378d249a059946ec49902cf566502b821924a93fbaee2eede7aee2bf79570748599619a7de2b9d46f5266856376f980f8476ae970d166994db0f9f0ab1e0fe0d4e4faa5686fdf862d53ab0dc50deacad264c6293809566db2ea9b5267a5e9fe2e862a3f20902b80f5d2459c5fa1f30deddc3b1
+        run: |
+          npm install --global yarn
+          yarn install --frozen-lockfile
+          yarn build
+
+# Please do not touch the following action
+      - name: Store deployment content
+        uses: ionos-deploy-now/artifact-action@v1
+        with:
+          api-key: ${{ secrets.IONOS_API_KEY }}
+          service-host: api-eu.ionos.space
+          project-id: 0ad6d555-9e6e-4198-862c-e706db2d6100
+          branch-id: ${{ inputs.branch-id }}
+          version: ${{ github.sha }}
+          folder: ${{ env.DEPLOYMENT_FOLDER }}
+          config-file: .deploy-now/blog-gatsby-strapi-frontend/config.yaml
+          action: upload
